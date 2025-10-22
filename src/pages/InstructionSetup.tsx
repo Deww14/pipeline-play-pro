@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -13,8 +12,102 @@ import {
 import { Card } from '@/components/ui/card';
 import { InstructionFactory } from '@/lib/instructionFactory';
 import { InstructionType, Instruction } from '@/types/pipeline';
-import { Plus, Trash2, Play, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Play, ArrowLeft, AlertCircle, GripVertical, Download, Upload, GitBranch, Minus, Asterisk } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const instructionIconMap: Record<InstructionType, any> = {
+  ADD: Plus,
+  SUB: Minus,
+  MUL: Asterisk,
+  LOAD: Download,
+  STORE: Upload,
+  BRANCH: GitBranch,
+};
+
+interface SortableInstructionProps {
+  instruction: Instruction;
+  index: number;
+  onRemove: (id: number) => void;
+  getInstructionColor: (type: InstructionType) => string;
+  getInstructionDetails: (instr: Instruction) => string;
+}
+
+function SortableInstruction({ 
+  instruction, 
+  index, 
+  onRemove, 
+  getInstructionColor, 
+  getInstructionDetails 
+}: SortableInstructionProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: instruction.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const Icon = instructionIconMap[instruction.type];
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`p-4 border ${getInstructionColor(instruction.type)} transition-all cursor-move`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+            <GripVertical className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <span className="font-mono text-sm font-bold w-8">#{index + 1}</span>
+          <div className="p-2 rounded-lg bg-background/30">
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-lg">{instruction.type}</div>
+            <div className="text-sm font-mono opacity-80">
+              {getInstructionDetails(instruction)}
+            </div>
+          </div>
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemove(instruction.id)}
+          className="hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 const InstructionSetup = () => {
   const navigate = useNavigate();
@@ -22,12 +115,37 @@ const InstructionSetup = () => {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [operation, setOperation] = useState<InstructionType>('ADD');
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setInstructions((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        return arrayMove(items, oldIndex, newIndex);
+      });
+
+      toast({
+        title: "Instructions Reordered",
+        description: "Instruction queue has been updated",
+      });
+    }
+  };
+
   const handleAddInstruction = () => {
     const newInstruction = InstructionFactory.createInstruction(operation);
     setInstructions([...instructions, newInstruction]);
     
     toast({
-      title: "✅ Instruction Added",
+      title: "Instruction Added",
       description: `${operation} operation added to queue`,
     });
   };
@@ -39,14 +157,13 @@ const InstructionSetup = () => {
   const handleStartSimulation = () => {
     if (instructions.length === 0) {
       toast({
-        title: "⚠️ No Instructions",
+        title: "No Instructions",
         description: "Please add at least one instruction to simulate",
         variant: "destructive",
       });
       return;
     }
 
-    // Store instructions in sessionStorage to pass to simulation page
     sessionStorage.setItem('pipelineInstructions', JSON.stringify(instructions));
     navigate('/simulation');
   };
@@ -143,12 +260,42 @@ const InstructionSetup = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ADD">➕ ADD - Addition</SelectItem>
-                  <SelectItem value="SUB">➖ SUB - Subtraction</SelectItem>
-                  <SelectItem value="MUL">✖️ MUL - Multiplication</SelectItem>
-                  <SelectItem value="LOAD">📥 LOAD - Load from Memory</SelectItem>
-                  <SelectItem value="STORE">📤 STORE - Store to Memory</SelectItem>
-                  <SelectItem value="BRANCH">🔀 BRANCH - Conditional Branch</SelectItem>
+                  <SelectItem value="ADD">
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      ADD - Addition
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="SUB">
+                    <div className="flex items-center gap-2">
+                      <Minus className="w-4 h-4" />
+                      SUB - Subtraction
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="MUL">
+                    <div className="flex items-center gap-2">
+                      <Asterisk className="w-4 h-4" />
+                      MUL - Multiplication
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="LOAD">
+                    <div className="flex items-center gap-2">
+                      <Download className="w-4 h-4" />
+                      LOAD - Load from Memory
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="STORE">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      STORE - Store to Memory
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="BRANCH">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-4 h-4" />
+                      BRANCH - Conditional Branch
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,35 +336,29 @@ const InstructionSetup = () => {
               <p className="text-sm">Add operations above to build your instruction queue</p>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {instructions.map((instr, index) => (
-                <Card
-                  key={instr.id}
-                  className={`p-4 border ${getInstructionColor(instr.type)} transition-all hover:scale-[1.02]`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="font-mono text-sm font-bold w-8">#{index + 1}</span>
-                      <div>
-                        <div className="font-bold text-lg">{instr.type}</div>
-                        <div className="text-sm font-mono opacity-80">
-                          {getInstructionDetails(instr)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveInstruction(instr.id)}
-                      className="hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={instructions.map(i => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {instructions.map((instr, index) => (
+                    <SortableInstruction
+                      key={instr.id}
+                      instruction={instr}
+                      index={index}
+                      onRemove={handleRemoveInstruction}
+                      getInstructionColor={getInstructionColor}
+                      getInstructionDetails={getInstructionDetails}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
 

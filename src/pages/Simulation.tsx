@@ -149,7 +149,7 @@ const Simulation = () => {
         {/* Pipeline Visualization */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Pipeline Stages</h2>
+            <h2 className="text-2xl font-bold">Pipeline Flow</h2>
             <div className="text-sm text-muted-foreground">
               Cycle: <span className="font-mono font-bold text-primary">{stats.totalCycles}</span>
             </div>
@@ -158,7 +158,7 @@ const Simulation = () => {
           <PipelineHeader />
 
           {/* Instructions */}
-          <div className="space-y-3 min-h-[200px]">
+          <div className="space-y-4 min-h-[200px] p-6 bg-pipeline-bg/30 rounded-2xl border border-border/30">
             {instructions.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <p className="text-lg mb-2">No instructions in pipeline</p>

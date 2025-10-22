@@ -1,28 +1,32 @@
 import { Instruction } from '@/types/pipeline';
 import PipelineStage from './PipelineStage';
 import { cn } from '@/lib/utils';
+import { Plus, Minus, Asterisk, Download, Upload, GitBranch, LucideIcon } from 'lucide-react';
 
 interface InstructionRowProps {
   instruction: Instruction;
 }
 
-const instructionIcons: Record<string, string> = {
-  ADD: '➕',
-  SUB: '➖',
-  MUL: '✖️',
-  LOAD: '📥',
-  STORE: '📤',
-  BRANCH: '🔀',
+const instructionIcons: Record<string, LucideIcon> = {
+  ADD: Plus,
+  SUB: Minus,
+  MUL: Asterisk,
+  LOAD: Download,
+  STORE: Upload,
+  BRANCH: GitBranch,
 };
 
 export default function InstructionRow({ instruction }: InstructionRowProps) {
   const stages = ['IF', 'ID', 'EX', 'MEM', 'WB'] as const;
+  const Icon = instructionIcons[instruction.type];
 
   return (
     <div className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border/50 animate-slide-right">
       {/* Instruction Info */}
       <div className="flex flex-col items-center justify-center w-32 gap-1">
-        <div className="text-2xl">{instructionIcons[instruction.type]}</div>
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Icon className="w-6 h-6 text-primary" />
+        </div>
         <div className={cn(
           "text-sm font-mono font-bold",
           instruction.hasHazard ? "text-destructive" : "text-primary"
