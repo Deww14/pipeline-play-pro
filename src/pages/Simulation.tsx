@@ -19,22 +19,9 @@ const Simulation = () => {
   const [instructions, setInstructions] = useState(pipelineController.getInstructions());
   const [stats, setStats] = useState(pipelineController.getStats());
   const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [forwardingEnabled, setForwardingEnabled] = useState(true);
   const { toast } = useToast();
 
-  // Load initial instructions from setup page
-  useEffect(() => {
-    const savedInstructions = sessionStorage.getItem('pipelineInstructions');
-    if (savedInstructions) {
-      try {
-        const parsed: Instruction[] = JSON.parse(savedInstructions);
-        parsed.forEach(instr => pipelineController.addInstruction(instr));
-        updateState();
-        sessionStorage.removeItem('pipelineInstructions');
-      } catch (error) {
-        console.error('Failed to load saved instructions:', error);
-      }
-    }
-  }, []);
 
   const updateState = useCallback(() => {
     setInstructions([...pipelineController.getInstructions()]);
@@ -51,9 +38,12 @@ const Simulation = () => {
     // Check for hazards
     const hasHazard = currentInstructions.some(i => i.hasHazard);
     if (hasHazard) {
+      const hazardType = currentInstructions.find(i => i.hasHazard)?.hazardType;
       toast({
-        title: "⚠️ Hazard Detected!",
-        description: "RAW hazard caused a pipeline stall.",
+        title: "Hazard Detected!",
+        description: hazardType === 'LOAD_USE' 
+          ? "Load-use hazard caused a pipeline stall"
+          : "RAW hazard detected - instruction stalled",
         variant: "destructive",
       });
     }
@@ -65,22 +55,35 @@ const Simulation = () => {
     updateState();
     
     toast({
-      title: "✅ Instruction Added",
+      title: "Instruction Added",
       description: `${type} instruction added to pipeline`,
     });
   }, [updateState, toast]);
 
   const handleReset = useCallback(() => {
     pipelineController.reset();
+    pipelineController.setForwarding(forwardingEnabled);
     InstructionFactory.reset();
     setIsAutoRunning(false);
     updateState();
     
     toast({
-      title: "🔄 Pipeline Reset",
+      title: "Pipeline Reset",
       description: "All instructions cleared",
     });
-  }, [updateState, toast]);
+  }, [updateState, toast, forwardingEnabled]);
+
+  const handleForwardingToggle = useCallback((enabled: boolean) => {
+    setForwardingEnabled(enabled);
+    pipelineController.setForwarding(enabled);
+    
+    toast({
+      title: enabled ? "Forwarding Enabled" : "Forwarding Disabled",
+      description: enabled 
+        ? "Data forwarding will reduce stalls" 
+        : "RAW hazards will cause more stalls",
+    });
+  }, [toast]);
 
   const handleAutoRun = useCallback(() => {
     setIsAutoRunning(prev => !prev);
@@ -144,6 +147,8 @@ const Simulation = () => {
           onAddInstruction={handleAddInstruction}
           onAutoRun={handleAutoRun}
           isAutoRunning={isAutoRunning}
+          forwardingEnabled={forwardingEnabled}
+          onForwardingToggle={handleForwardingToggle}
         />
 
         {/* Pipeline Visualization */}

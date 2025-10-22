@@ -12,6 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ControlPanelProps {
   onNextCycle: () => void;
@@ -19,6 +21,8 @@ interface ControlPanelProps {
   onAddInstruction: (type: InstructionType) => void;
   onAutoRun: () => void;
   isAutoRunning: boolean;
+  forwardingEnabled: boolean;
+  onForwardingToggle: (enabled: boolean) => void;
 }
 
 const instructionTypes: { type: InstructionType; label: string; icon: string }[] = [
@@ -36,9 +40,11 @@ export default function ControlPanel({
   onAddInstruction,
   onAutoRun,
   isAutoRunning,
+  forwardingEnabled,
+  onForwardingToggle,
 }: ControlPanelProps) {
   return (
-    <div className="flex flex-wrap gap-3 p-6 bg-card rounded-xl border border-border/50">
+    <div className="flex flex-wrap items-center gap-3 p-6 bg-card rounded-xl border border-border/50">
       <Button
         onClick={onNextCycle}
         className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
@@ -87,6 +93,17 @@ export default function ControlPanel({
         <RotateCcw className="w-4 h-4" />
         Reset
       </Button>
+
+      <div className="flex items-center gap-2 ml-auto">
+        <Switch 
+          id="forwarding" 
+          checked={forwardingEnabled}
+          onCheckedChange={onForwardingToggle}
+        />
+        <Label htmlFor="forwarding" className="text-sm font-medium cursor-pointer">
+          Forwarding {forwardingEnabled ? 'ON' : 'OFF'}
+        </Label>
+      </div>
     </div>
   );
 }

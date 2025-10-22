@@ -1,6 +1,6 @@
 import { PipelineStats } from '@/types/pipeline';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, Cpu, AlertTriangle, Clock } from 'lucide-react';
+import { TrendingUp, Cpu, AlertTriangle, Clock, PauseCircle } from 'lucide-react';
 
 interface StatsDisplayProps {
   stats: PipelineStats;
@@ -18,7 +18,7 @@ export default function StatsDisplay({ stats }: StatsDisplayProps) {
       icon: Cpu,
       label: 'Completed',
       value: stats.instructionsCompleted,
-      color: 'text-success',
+      color: 'text-chart-1',
     },
     {
       icon: TrendingUp,
@@ -32,10 +32,16 @@ export default function StatsDisplay({ stats }: StatsDisplayProps) {
       value: stats.hazardsDetected,
       color: 'text-destructive',
     },
+    {
+      icon: PauseCircle,
+      label: 'Stalls',
+      value: stats.stallsInserted,
+      color: 'text-muted-foreground',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       {statItems.map((item) => (
         <Card key={item.label} className="p-4 bg-card border-border/50">
           <div className="flex items-center gap-3">
